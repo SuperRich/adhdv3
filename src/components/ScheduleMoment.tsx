@@ -66,7 +66,7 @@ export function ScheduleMoment({ onSchedule, desires, isHotMode, isEmmaMode }: P
           date: dateTime,
         };
       } else {
-        const selectedDesire = desires.find(d => d.id === parseInt(selectedDesireId));
+        const selectedDesire = desires.find(d => d.id === selectedDesireId);
         if (!selectedDesire) throw new Error('Selected desire not found');
         
         momentData = {
@@ -170,7 +170,7 @@ export function ScheduleMoment({ onSchedule, desires, isHotMode, isEmmaMode }: P
                   value={selectedDesireId}
                   onChange={(e) => {
                     setSelectedDesireId(e.target.value);
-                    const desire = desires.find(d => d.id === parseInt(e.target.value));
+                    const desire = desires.find(d => d.id === e.target.value);
                     if (desire) {
                       setTitle(desire.title);
                       setDescription(desire.description);

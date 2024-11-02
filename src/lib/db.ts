@@ -1,25 +1,36 @@
-import { openDB } from 'idb';
-
-const DB_NAME = 'intimacy-scheduler-v2'; // Changed DB name to force fresh start
-const DB_VERSION = 1; // Reset version number
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where,
+  updateDoc,
+  orderBy,
+  limit as firestoreLimit,
+  onSnapshot
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { FirebaseError } from 'firebase/app';
 
 export interface Appreciation {
-  id?: number;
+  id?: string;
   text: string;
   date: Date;
   author: 'Emma' | 'Richard';
 }
 
 export interface ScheduledMoment {
-  id?: number;
+  id?: string;
   title: string;
   description: string;
   date: Date;
-  desireId?: number;
+  desireId?: string;
 }
 
 export interface Desire {
-  id?: number;
+  id?: string;
   title: string;
   description: string;
   date: Date;
@@ -29,95 +40,158 @@ export interface Desire {
   category?: string;
 }
 
-export const db = await openDB<{
-  appreciations: Appreciation;
-  'scheduled-moments': ScheduledMoment;
-  desires: Desire;
-}>(DB_NAME, DB_VERSION, {
-  upgrade(db) {
-    // Create stores with correct schema
-    const appreciationsStore = db.createObjectStore('appreciations', { 
-      keyPath: 'id', 
-      autoIncrement: true 
-    });
-
-    const scheduledMomentsStore = db.createObjectStore('scheduled-moments', { 
-      keyPath: 'id', 
-      autoIncrement: true 
-    });
-
-    const desiresStore = db.createObjectStore('desires', { 
-      keyPath: 'id', 
-      autoIncrement: true 
-    });
-
-    // Create indexes
-    desiresStore.createIndex('author', 'author');
-    desiresStore.createIndex('priority', 'priority');
-    desiresStore.createIndex('isHot', 'isHot');
-  },
-});
-
 export const appreciationsDB = {
   async add(appreciation: Appreciation) {
-    return db.add('appreciations', appreciation);
+    const appreciationsRef = collection(db, 'appreciations');
+    const docRef = await addDoc(appreciationsRef, {
+      ...appreciation,
+      date: appreciation.date.toISOString()
+    });
+    return docRef.id;
   },
+
   async getAll() {
-    return db.getAll('appreciations');
+    const appreciationsRef = collection(db, 'appreciations');
+    const snapshot = await getDocs(appreciationsRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: new Date(doc.data().date)
+    })) as Appreciation[];
   },
-  async delete(id: number) {
-    return db.delete('appreciations', id);
+
+  async delete(id: string) {
+    const docRef = doc(db, 'appreciations', id);
+    await deleteDoc(docRef);
   },
 };
 
 export const scheduledMomentsDB = {
   async add(moment: ScheduledMoment) {
-    return db.add('scheduled-moments', moment);
+    const momentsRef = collection(db, 'scheduled-moments');
+    const docRef = await addDoc(momentsRef, {
+      ...moment,
+      date: moment.date.toISOString()
+    });
+    return docRef.id;
   },
+
   async getAll() {
-    return db.getAll('scheduled-moments');
+    const momentsRef = collection(db, 'scheduled-moments');
+    const snapshot = await getDocs(momentsRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: new Date(doc.data().date)
+    })) as ScheduledMoment[];
   },
-  async delete(id: number) {
-    return db.delete('scheduled-moments', id);
+
+  async delete(id: string) {
+    const docRef = doc(db, 'scheduled-moments', id);
+    await deleteDoc(docRef);
   },
-  async update(id: number, data: Partial<ScheduledMoment>) {
-    const tx = db.transaction('scheduled-moments', 'readwrite');
-    const store = tx.objectStore('scheduled-moments');
-    const moment = await store.get(id);
-    if (!moment) throw new Error('Moment not found');
-    await store.put({ ...moment, ...data });
-    return tx.done;
+
+  async update(id: string, data: Partial<ScheduledMoment>) {
+    const docRef = doc(db, 'scheduled-moments', id);
+    await updateDoc(docRef, {
+      ...data,
+      date: data.date?.toISOString()
+    });
   },
 };
 
 export const desiresDB = {
   async add(desire: Desire) {
-    return db.add('desires', desire);
+    try {
+      const desiresRef = collection(db, 'desires');
+      const docRef = await addDoc(desiresRef, {
+        ...desire,
+        date: desire.date.toISOString()
+      });
+      return docRef.id;
+    } catch (error) {
+      if (error instanceof FirebaseError) {
+        console.error('Firebase error:', error.code, error.message);
+      } else {
+        console.error('Unknown error:', error);
+      }
+      throw error;
+    }
   },
+
   async getAll() {
-    return db.getAll('desires');
+    const desiresRef = collection(db, 'desires');
+    const snapshot = await getDocs(desiresRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: new Date(doc.data().date)
+    })) as Desire[];
   },
+
   async getAllByAuthor(author: 'Emma' | 'Richard') {
-    const tx = db.transaction('desires', 'readonly');
-    const store = tx.objectStore('desires');
-    const authorIndex = store.index('author');
-    return authorIndex.getAll(author);
+    const desiresRef = collection(db, 'desires');
+    const q = query(desiresRef, where('author', '==', author));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: new Date(doc.data().date)
+    })) as Desire[];
   },
+
+  async delete(id: string) {
+    const docRef = doc(db, 'desires', id);
+    await deleteDoc(docRef);
+  },
+
+  async update(id: string, data: Partial<Desire>) {
+    const docRef = doc(db, 'desires', id);
+    await updateDoc(docRef, {
+      ...data,
+      date: data.date?.toISOString()
+    });
+  },
+
+  async getByMode(isHot: boolean) {
+    const desiresRef = collection(db, 'desires');
+    const q = query(desiresRef, where('isHot', '==', isHot));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: new Date(doc.data().date)
+    })) as Desire[];
+  },
+
   async getTopDesires(author: 'Emma' | 'Richard', limit: number) {
     const desires = await this.getAllByAuthor(author);
     return desires
       .sort((a, b) => b.priority - a.priority)
       .slice(0, limit);
   },
-  async delete(id: number) {
-    return db.delete('desires', id);
+
+  async getByCategory(category: string) {
+    const desires = await this.getAll();
+    return desires.filter(desire => desire.category === category);
   },
-  async updatePriority(id: number, priority: number) {
-    const tx = db.transaction('desires', 'readwrite');
-    const store = tx.objectStore('desires');
-    const desire = await store.get(id);
-    if (!desire) throw new Error('Desire not found');
-    await store.put({ ...desire, priority });
-    return tx.done;
+
+  async clear() {
+    const desiresRef = collection(db, 'desires');
+    const snapshot = await getDocs(desiresRef);
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
   },
+
+  subscribe(callback: (desires: Desire[]) => void) {
+    const desiresRef = collection(db, 'desires');
+    return onSnapshot(desiresRef, (snapshot) => {
+      const desires = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: new Date(doc.data().date)
+      })) as Desire[];
+      callback(desires);
+    });
+  }
 };

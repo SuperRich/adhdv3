@@ -111,35 +111,35 @@ export const CalendarView = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px] bg-white rounded-lg">
-        <div className="text-gray-600 animate-pulse">Loading calendar...</div>
+      <div className="flex justify-center items-center min-h-[300px] sm:min-h-[400px] bg-white rounded-lg">
+        <div className="text-gray-600 animate-pulse text-sm sm:text-base">Loading calendar...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[400px] bg-white rounded-lg">
-        <div className="text-red-500">Error: {error}</div>
+      <div className="flex justify-center items-center min-h-[300px] sm:min-h-[400px] bg-white rounded-lg">
+        <div className="text-red-500 text-sm sm:text-base">Error: {error}</div>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-lg">
-      <div className="flex justify-between items-center mb-4 p-4">
+      <div className="flex justify-between items-center mb-3 sm:mb-4 p-2 sm:p-4">
         <button 
           onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-          className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition-colors"
+          className="px-2 sm:px-4 py-1.5 sm:py-2 bg-pink-500 text-white rounded text-sm sm:text-base hover:bg-pink-600 transition-colors"
         >
           Previous
         </button>
-        <h2 className="text-xl font-semibold">
+        <h2 className="text-base sm:text-xl font-semibold">
           {format(currentDate, 'MMMM yyyy')}
         </h2>
         <button 
           onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-          className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition-colors"
+          className="px-2 sm:px-4 py-1.5 sm:py-2 bg-pink-500 text-white rounded text-sm sm:text-base hover:bg-pink-600 transition-colors"
         >
           Next
         </button>
@@ -147,14 +147,14 @@ export const CalendarView = () => {
 
       <div className="grid grid-cols-7 gap-px bg-gray-200">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center font-semibold p-2 bg-white">
+          <div key={day} className="text-center font-semibold p-1 sm:p-2 bg-white text-xs sm:text-sm">
             {day}
           </div>
         ))}
         
         {getDaysInMonth().map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="bg-white p-2 min-h-[100px]" />;
+            return <div key={`empty-${index}`} className="bg-white p-1 sm:p-2 min-h-[60px] sm:min-h-[100px]" />;
           }
 
           const dayEvents = getEventsForDay(date);
@@ -163,20 +163,20 @@ export const CalendarView = () => {
               key={date.toISOString()}
               onClick={() => handleDateClick(date)}
               className={`
-                bg-white p-2 min-h-[100px] cursor-pointer transition-colors
+                bg-white p-1 sm:p-2 min-h-[60px] sm:min-h-[100px] cursor-pointer transition-colors
                 hover:bg-gray-50 relative
                 ${isToday(date) ? 'ring-2 ring-pink-500 ring-inset' : ''}
                 ${dayEvents.length > 0 ? 'bg-pink-50' : ''}
               `}
             >
-              <div className="font-semibold mb-1">
+              <div className="font-semibold mb-0.5 sm:mb-1 text-sm sm:text-base">
                 {format(date, 'd')}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5 sm:space-y-1">
                 {dayEvents.map(event => (
                   <div 
                     key={event.id}
-                    className="text-xs p-1 rounded bg-pink-100 truncate hover:bg-pink-200"
+                    className="text-[10px] sm:text-xs p-0.5 sm:p-1 rounded bg-pink-100 truncate hover:bg-pink-200"
                     title={`${event.summary}\n${format(new Date(event.start), 'HH:mm')} - ${format(new Date(event.end), 'HH:mm')}`}
                   >
                     <div className="font-medium">{event.summary}</div>

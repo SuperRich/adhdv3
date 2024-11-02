@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Heart, Trash2, Plus, Flame, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Desire } from '../lib/db';
+import type { Desire, ScheduledMoment } from '../lib/db';
 
 interface DesiresListProps {
   desires: Desire[];
   isEmmaMode: boolean;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onAdd?: (desire: Omit<Desire, 'id'>) => void;
-  onSchedule?: (desire: Desire) => void;
+  onSchedule?: (moment: Omit<ScheduledMoment, 'id'>) => void;
   isHotMode: boolean;
 }
 

@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to all users for development
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Previous rules can be commented out for now
+    // match /appreciations/{appreciation} {
+    //   allow read: if request.auth != null;
+    //   allow write: if request.auth != null && 
+    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
+    // }
+    
+    // match /desires/{desire} {
+    //   allow read: if request.auth != null;
+    //   allow write: if request.auth != null && 
+    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
+    // }
+    
+    // match /scheduled-moments/{moment} {
+    //   allow read: if request.auth != null;
+    //   allow write: if request.auth != null && 
+    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
+    // }
+  }
+}

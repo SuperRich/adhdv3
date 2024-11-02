@@ -6,18 +6,24 @@ interface Props {
 }
 
 export function Login({ onLogin }: Props) {
-  const [password, setPassword] = useState('');
+  const [emmaPassword, setEmmaPassword] = useState('');
+  const [richardPassword, setRichardPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent, isEmma: boolean) => {
     e.preventDefault();
-    const correctPassword = isEmma ? '76park' : 'PepsiMaxCard90';
+    const password = isEmma ? emmaPassword : richardPassword;
+    const correctPassword = isEmma ? '76park' : 'brunog';
     
     if (password === correctPassword) {
       onLogin(isEmma);
     } else {
       setError('Incorrect password');
-      setPassword('');
+      if (isEmma) {
+        setEmmaPassword('');
+      } else {
+        setRichardPassword('');
+      }
     }
   };
 
@@ -35,10 +41,7 @@ export function Login({ onLogin }: Props) {
             onSubmit={(e) => handleSubmit(e, true)}
           >
             <div className="flex items-center justify-center">
-              <div className="relative">
-                <Heart className="w-12 h-12 text-pink-500" />
-                <Brain className="w-8 h-8 text-purple-500 absolute -bottom-1 -right-1" />
-              </div>
+              <Heart className="w-12 h-12 text-pink-500" />
             </div>
             <h2 className="text-xl font-semibold text-center">Emma's Space</h2>
             <div>
@@ -48,9 +51,9 @@ export function Login({ onLogin }: Props) {
               </label>
               <input
                 type="password"
-                value={password}
+                value={emmaPassword}
                 onChange={(e) => {
-                  setPassword(e.target.value);
+                  setEmmaPassword(e.target.value);
                   setError('');
                 }}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
@@ -79,9 +82,9 @@ export function Login({ onLogin }: Props) {
               </label>
               <input
                 type="password"
-                value={password}
+                value={richardPassword}
                 onChange={(e) => {
-                  setPassword(e.target.value);
+                  setRichardPassword(e.target.value);
                   setError('');
                 }}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"

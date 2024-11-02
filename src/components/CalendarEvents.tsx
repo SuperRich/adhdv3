@@ -74,12 +74,12 @@ export const CalendarEvents = () => {
   };
 
   if (isLoading) {
-    return <div className="p-4 text-center">Loading calendar events...</div>;
+    return <div className="p-3 sm:p-4 text-center text-sm sm:text-base">Loading calendar events...</div>;
   }
 
   if (error) {
     return (
-      <div className="p-4 text-red-500 text-center">
+      <div className="p-3 sm:p-4 text-red-500 text-center text-sm sm:text-base">
         <p>Error loading events:</p>
         <p>{error}</p>
       </div>
@@ -87,29 +87,29 @@ export const CalendarEvents = () => {
   }
 
   return (
-    <div key="calendar-events" className="calendar-events p-4">
-      <h2 className="text-xl font-semibold mb-4">Next 7 Days Events</h2>
+    <div key="calendar-events" className="calendar-events p-3 sm:p-4">
+      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Next 7 Days Events</h2>
       {events.length === 0 ? (
-        <p className="text-center text-gray-500">No upcoming events in the next 7 days</p>
+        <p className="text-center text-gray-500 text-sm sm:text-base">No upcoming events in the next 7 days</p>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-3 sm:space-y-4">
           {events.map((event) => (
-            <li key={event.id} className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-medium text-lg">{event.summary}</h3>
-              <p className="text-sm text-gray-600">
+            <li key={event.id} className="bg-white rounded-lg shadow p-3 sm:p-4">
+              <h3 className="font-medium text-base sm:text-lg">{event.summary}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {event.start && `Start: ${formatEventDate(event.start)}`}
                 <br />
                 {event.end && `End: ${formatEventDate(event.end)}`}
               </p>
               {event.description && (
-                <div className="mt-2 text-sm">
+                <div className="mt-2 text-xs sm:text-sm">
                   <p className="whitespace-pre-wrap break-words overflow-hidden">
                     {event.description}
                   </p>
                 </div>
               )}
               {event.location && (
-                <p className="mt-2 text-sm text-gray-500 break-words">
+                <p className="mt-2 text-xs sm:text-sm text-gray-500 break-words">
                   Location: {event.location}
                 </p>
               )}

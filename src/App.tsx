@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, Brain, Calendar, MessageCircleHeart, UserCircle2, Flame } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
@@ -56,7 +56,7 @@ function App() {
   });
 
   const deleteAppreciation = useMutation({
-    mutationFn: (id: number) => appreciationsDB.delete(id),
+    mutationFn: (id: string) => appreciationsDB.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appreciations'] });
       toast.success('Appreciation deleted');
@@ -72,7 +72,7 @@ function App() {
   });
 
   const deleteScheduledMoment = useMutation({
-    mutationFn: (id: number) => scheduledMomentsDB.delete(id),
+    mutationFn: (id: string) => scheduledMomentsDB.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-moments'] });
       toast.success('Scheduled moment deleted');
@@ -88,7 +88,7 @@ function App() {
   });
 
   const deleteDesire = useMutation({
-    mutationFn: (id: number) => desiresDB.delete(id),
+    mutationFn: (id: string) => desiresDB.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['desires'] });
       toast.success('Desire deleted');
@@ -100,6 +100,14 @@ function App() {
     setIsLoggedIn(true);
     toast.success(`Welcome back, ${isEmma ? 'Emma' : 'Richard'}!`);
   };
+
+  useEffect(() => {
+    const unsubscribe = desiresDB.subscribe((newDesires) => {
+      queryClient.setQueryData(['desires'], newDesires);
+    });
+
+    return () => unsubscribe();
+  }, [queryClient]);
 
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;

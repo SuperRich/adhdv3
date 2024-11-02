@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 
 interface Props {
   appreciation: Appreciation;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   currentUser: 'Emma' | 'Richard';
 }
 

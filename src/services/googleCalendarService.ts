@@ -134,6 +134,54 @@ export class GoogleCalendarService {
       throw error;
     }
   }
+
+  async addWellbeingEvent(
+    summary: string,
+    startTime: Date,
+    endTime: Date,
+    description: string
+  ): Promise<any> {
+    try {
+      const accessToken = await googleAuthService.signIn();
+      
+      const event = {
+        summary,
+        description,
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      };
+
+      const url = `${GoogleCalendarService.CALENDAR_API_BASE}/calendars/${encodeURIComponent(GoogleCalendarService.CALENDAR_ID)}/events`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to add wellbeing event:', errorData);
+        throw new Error(`Failed to add event: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Successfully added wellbeing event:', data);
+      return data;
+    } catch (error) {
+      console.error('Error adding wellbeing event:', error);
+      throw error;
+    }
+  }
 }
 
 export const googleCalendarService = new GoogleCalendarService();
