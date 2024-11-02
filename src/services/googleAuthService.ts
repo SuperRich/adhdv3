@@ -14,28 +14,58 @@ export class GoogleAuthService {
       return;
     }
 
-    return new Promise<void>((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        this.tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: GoogleAuthService.CLIENT_ID,
-          scope: GoogleAuthService.SCOPES.join(' '),
-          prompt: 'consent',
-          callback: (response: any) => {
-            if (response.error !== undefined) {
-              throw new Error(response.error);
-            }
-            this.accessToken = response.access_token;
-          },
-        });
-        this.initialized = true;
-        resolve();
+    console.log('Current origin:', window.location.origin);
+
+    await new Promise<void>((resolve) => {
+      const checkAPIs = () => {
+        if (window.gapi && window.google?.accounts) {
+          console.log('APIs loaded successfully');
+          resolve();
+        } else {
+          console.log('Waiting for APIs...');
+          setTimeout(checkAPIs, 100);
+        }
       };
-      document.head.appendChild(script);
+      checkAPIs();
     });
+
+    await new Promise<void>((resolve) => {
+      gapi.load('client', async () => {
+        try {
+          console.log('Initializing gapi client...');
+          await gapi.client.init({
+            apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+          });
+          console.log('Gapi client initialized');
+          resolve();
+        } catch (error) {
+          console.error('Error initializing gapi client:', error);
+          throw error;
+        }
+      });
+    });
+
+    try {
+      console.log('Initializing token client...');
+      this.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GoogleAuthService.CLIENT_ID,
+        scope: GoogleAuthService.SCOPES.join(' '),
+        callback: (response: any) => {
+          console.log('Token client callback received:', response.error || 'success');
+          if (response.error !== undefined) {
+            throw new Error(response.error);
+          }
+          this.accessToken = response.access_token;
+        },
+      });
+      console.log('Token client initialized');
+    } catch (error) {
+      console.error('Error initializing token client:', error);
+      throw error;
+    }
+
+    this.initialized = true;
   }
 
   async signIn(): Promise<string> {
@@ -43,7 +73,6 @@ export class GoogleAuthService {
       await this.initialize();
     }
 
-    // If we already have a token, return it
     if (this.accessToken) {
       return this.accessToken;
     }
@@ -55,7 +84,6 @@ export class GoogleAuthService {
           return;
         }
 
-        // Set up the callback before requesting the token
         this.tokenClient.callback = (response: any) => {
           if (response.error !== undefined) {
             reject(new Error(response.error));
@@ -65,16 +93,7 @@ export class GoogleAuthService {
           resolve(response.access_token);
         };
 
-        // Request the token
-        if (gapi.client?.getToken()?.access_token) {
-          // We have a token already, resolve with it
-          resolve(gapi.client.getToken().access_token);
-        } else {
-          // No token, request a new one
-          this.tokenClient.requestAccessToken({
-            prompt: 'consent'
-          });
-        }
+        this.tokenClient.requestAccessToken();
       } catch (error) {
         reject(error);
       }
@@ -83,15 +102,10 @@ export class GoogleAuthService {
 
   async signOut() {
     if (this.accessToken) {
-      // Clear token without revoking
       this.accessToken = null;
-      
-      // Clear token client
       if (this.tokenClient) {
         this.tokenClient.callback = null;
       }
-
-      // Clear any Google session cookies
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i];

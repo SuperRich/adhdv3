@@ -15,4 +15,66 @@
   textarea {
     @apply rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500;
   }
+
+  .calendar-container {
+    @apply bg-white rounded-xl shadow-md p-3 sm:p-6 w-full max-w-full overflow-hidden;
+  }
+
+  .calendar-header {
+    @apply flex items-center justify-between mb-4 sm:mb-6 px-1;
+  }
+
+  .calendar-grid {
+    @apply grid grid-cols-7 gap-0.5 sm:gap-1 text-center;
+  }
+
+  .calendar-day {
+    @apply aspect-square flex flex-col items-center justify-start p-1 sm:p-2 
+           rounded-md sm:rounded-lg cursor-pointer transition-colors relative 
+           hover:bg-gray-50 min-h-[40px] sm:min-h-[60px] text-sm sm:text-base;
+  }
+
+  .calendar-day span {
+    @apply mb-0.5;
+  }
+
+  .calendar-day.selected {
+    @apply bg-pink-50 font-medium;
+  }
+
+  .calendar-day.today {
+    @apply ring-2 ring-pink-500 ring-inset;
+  }
+
+  .calendar-day.disabled {
+    @apply text-gray-300 cursor-not-allowed bg-gray-50;
+  }
+
+  .calendar-weekday {
+    @apply font-medium text-gray-600 p-1 sm:p-2 text-xs sm:text-sm uppercase;
+  }
+
+  .calendar-navigation {
+    @apply flex gap-2 sm:gap-4 items-center;
+  }
+
+  .calendar-navigation button {
+    @apply p-1.5 sm:p-2 rounded-full transition-colors hover:bg-gray-100;
+  }
+
+  .calendar-month-year {
+    @apply text-base sm:text-lg font-medium text-gray-900;
+  }
+
+  .time-slot {
+    @apply px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs text-gray-600 truncate;
+  }
+
+  .time-slot.available {
+    @apply text-pink-600 font-medium;
+  }
+
+  .has-slots::after {
+    @apply content-[''] absolute bottom-0.5 sm:bottom-1 w-1 h-1 bg-pink-500 rounded-full;
+  }
 }

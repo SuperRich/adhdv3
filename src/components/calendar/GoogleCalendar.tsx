@@ -9,6 +9,7 @@ import {
   subMonths,
   getDay,
   isSameMonth,
+  format,
 } from 'date-fns';
 import { googleCalendarService } from '../../services/googleCalendarService';
 import { CalendarEvent } from '../../types/calendar';
@@ -79,38 +80,55 @@ export function GoogleCalendar({ onDateSelect, selectedDate }: GoogleCalendarPro
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
-      <div className="p-4">
+    <div className="calendar-container">
+      <div className="calendar-header">
         <CalendarHeader
           currentDate={currentDate}
           onPrevMonth={() => setCurrentDate(subMonths(currentDate, 1))}
           onNextMonth={() => setCurrentDate(addMonths(currentDate, 1))}
         />
+      </div>
 
-        <div className="grid grid-cols-7 gap-px">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center font-medium text-sm py-2">
-              {day}
+      <div className="calendar-grid">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} className="calendar-weekday">
+            {day}
+          </div>
+        ))}
+        
+        {getDaysInMonth().map((date, index) => {
+          if (!date) {
+            return <div key={`empty-${index}`} className="calendar-day disabled" />;
+          }
+
+          const dayEvents = getEventsForDay(date);
+          const hasEvents = dayEvents.length > 0;
+
+          return (
+            <div
+              key={date.toISOString()}
+              onClick={() => onDateSelect(date)}
+              className={`calendar-day ${
+                isToday(date) ? 'today' : ''
+              } ${
+                selectedDate && isSameDay(date, selectedDate) ? 'selected' : ''
+              } ${
+                hasEvents ? 'has-slots' : ''
+              }`}
+            >
+              <span>{format(date, 'd')}</span>
+              {dayEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="time-slot available"
+                  title={`${event.summary}\n${format(new Date(event.start), 'HH:mm')} - ${format(new Date(event.end), 'HH:mm')}`}
+                >
+                  {format(new Date(event.start), 'HH:mm')}
+                </div>
+              ))}
             </div>
-          ))}
-          
-          {getDaysInMonth().map((date, index) => {
-            if (!date) {
-              return <div key={`empty-${index}`} className="bg-gray-50" />;
-            }
-
-            return (
-              <CalendarDay
-                key={date.toISOString()}
-                date={date}
-                events={getEventsForDay(date)}
-                isToday={isToday(date)}
-                isSelected={selectedDate ? isSameDay(date, selectedDate) : false}
-                onSelect={onDateSelect}
-              />
-            );
-          })}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -9,20 +9,14 @@ interface CalendarHeaderProps {
 
 export function CalendarHeader({ currentDate, onPrevMonth, onNextMonth }: CalendarHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <button
-        onClick={onPrevMonth}
-        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-      >
+    <div className="calendar-navigation">
+      <button onClick={onPrevMonth}>
         <ChevronLeft className="w-5 h-5" />
       </button>
-      <h2 className="text-lg font-semibold">
+      <h2 className="calendar-month-year">
         {format(currentDate, 'MMMM yyyy')}
       </h2>
-      <button
-        onClick={onNextMonth}
-        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-      >
+      <button onClick={onNextMonth}>
         <ChevronRight className="w-5 h-5" />
       </button>
     </div>

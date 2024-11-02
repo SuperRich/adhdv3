@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Heart, Flame } from 'lucide-react';
 import { GoogleCalendar } from './calendar/GoogleCalendar';
 import type { ScheduledMoment, Desire } from '../lib/db';
+import { format as dateFormat } from 'date-fns';
 
 interface Props {
   onSchedule: (moment: Omit<ScheduledMoment, 'id'>) => void;
@@ -92,6 +93,14 @@ export function ScheduleMoment({ onSchedule, desires, isHotMode, isEmmaMode }: P
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
   };
 
   return (
@@ -246,7 +255,7 @@ export function ScheduleMoment({ onSchedule, desires, isHotMode, isEmmaMode }: P
               </label>
               <div className="text-gray-900 py-2">
                 {selectedDate ? (
-                  format(selectedDate, 'MMMM d, yyyy')
+                  formatDate(selectedDate)
                 ) : (
                   <span className="text-gray-500">No date selected</span>
                 )}
