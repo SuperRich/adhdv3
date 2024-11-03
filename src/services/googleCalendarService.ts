@@ -155,10 +155,19 @@ export class GoogleCalendarService {
           dateTime: endTime.toISOString(),
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'popup', minutes: 30 }
+          ]
+        }
       };
 
       const url = `${GoogleCalendarService.CALENDAR_API_BASE}/calendars/${encodeURIComponent(GoogleCalendarService.CALENDAR_ID)}/events`;
       
+      console.log('Sending calendar event:', event);
+      console.log('To URL:', url);
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -170,15 +179,60 @@ export class GoogleCalendarService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Failed to add wellbeing event:', errorData);
+        console.error('Failed to add event to calendar:', errorData);
         throw new Error(`Failed to add event: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Successfully added wellbeing event:', data);
+      console.log('Successfully added event to calendar:', data);
+      
+      // Broadcast the calendar update
+      window.dispatchEvent(new Event('calendar-updated'));
+      
       return data;
     } catch (error) {
-      console.error('Error adding wellbeing event:', error);
+      console.error('Detailed error adding event to calendar:', error);
+      throw error;
+    }
+  }
+
+  async verifyCalendarAccess(): Promise<boolean> {
+    try {
+      const accessToken = await googleAuthService.signIn();
+      const url = `${GoogleCalendarService.CALENDAR_API_BASE}/calendars/${encodeURIComponent(GoogleCalendarService.CALENDAR_ID)}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Calendar access verification failed:', error);
+      return false;
+    }
+  }
+
+  async deleteEvent(eventId: string): Promise<boolean> {
+    try {
+      const accessToken = await googleAuthService.signIn();
+      const url = `${GoogleCalendarService.CALENDAR_API_BASE}/calendars/${encodeURIComponent(GoogleCalendarService.CALENDAR_ID)}/events/${eventId}`;
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete event');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
       throw error;
     }
   }

@@ -88,33 +88,87 @@ export function EmmaWellbeing({ onSchedule, desires, isHotMode, isEmmaMode }: Pr
 
 
 
-  const handleAddToCalendar = async (activity: string) => {
+  const handleAddToCalendar = async (moment: Omit<ScheduledMoment, "id">) => {
 
-    const startTime = new Date();
+    console.log('Attempting to add to calendar:', moment);
 
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour duration
-
-
+    
 
     try {
 
-      await googleCalendarService.addWellbeingEvent(
+      // Verify calendar access first
 
-        `Wellbeing Activity: ${activity}`,
+      const hasAccess = await googleCalendarService.verifyCalendarAccess();
+
+      if (!hasAccess) {
+
+        toast.error('No access to calendar. Please check permissions.');
+
+        throw new Error('No calendar access');
+
+      }
+
+
+
+      const startTime = moment.date;
+
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+
+
+      console.log('Adding event with times:', {
+
+        start: startTime.toISOString(),
+
+        end: endTime.toISOString()
+
+      });
+
+
+
+      const newEvent = await googleCalendarService.addWellbeingEvent(
+
+        moment.title,
 
         startTime,
 
         endTime,
 
-        `Scheduled wellbeing activity: ${activity}`
+        moment.description
 
       );
 
-      await loadCalendarEvents();
+      
+
+      if (!newEvent?.id) {
+
+        throw new Error('Failed to create calendar event');
+
+      }
+
+
+
+      console.log('Successfully created calendar event:', newEvent);
+
+      
+
+      // Update the event name to 'calendar-updated' to match CalendarEvents
+
+      window.dispatchEvent(new Event('calendar-updated'));
+
+      
+
+      toast.success('Added to calendar successfully');
+
+      return true;
 
     } catch (error) {
 
-      console.error('Error adding event to calendar:', error);
+      console.error('Failed to add to calendar:', error);
+
+      toast.error('Failed to add to calendar: ' + (error instanceof Error ? error.message : 'Unknown error'));
+
+      throw error;
 
     }
 
@@ -186,19 +240,75 @@ Sent on: ${currentDate}
 
 
 
+  const handleClear = async () => {
+
+    if (window.confirm('Are you sure you want to clear all priorities?')) {
+
+      await weeklyPrioritiesDB.clear();
+
+      toast.success('Priorities cleared');
+
+    }
+
+  };
+
+
+
+  useEffect(() => {
+
+    const handleCalendarUpdate = () => {
+
+      loadCalendarEvents();
+
+    };
+
+
+
+    window.addEventListener('calendar-updated', handleCalendarUpdate);
+
+    return () => {
+
+      window.removeEventListener('calendar-updated', handleCalendarUpdate);
+
+    };
+
+  }, []);
+
+
+
   return (
 
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 space-y-4 sm:space-y-8">
 
       <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
 
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 flex items-center gap-2">
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
 
-          <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
+          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
 
-          This Week's Priorities
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
 
-        </h2>
+            This Week's Priorities (Tell Richard how he can help)
+
+          </h2>
+
+          {weeklyIssues.length > 0 && (
+
+            <button
+
+              onClick={handleClear}
+
+              className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+
+            >
+
+              Clear All
+
+            </button>
+
+          )}
+
+        </div>
 
         
 
@@ -264,7 +374,7 @@ Sent on: ${currentDate}
 
                         placeholder={[
 
-                          "Help me stay focused during meetings",
+                          "Help phone Gentoo",
 
                           "Remind me about daily medication",
 
@@ -282,7 +392,7 @@ Sent on: ${currentDate}
 
                       <div className="pl-4 space-y-2">
 
-                        <div className="text-sm text-pink-600 font-medium">How:</div>
+                        <div className="text-sm text-pink-600 font-medium">How he can help:</div>
 
                         {[0, 1, 2].map((index) => (
 
@@ -412,13 +522,29 @@ Sent on: ${currentDate}
 
         <ScheduleMoment
 
-          onSchedule={(moment: Omit<ScheduledMoment, "id">) => {
+          onSchedule={async (moment: Omit<ScheduledMoment, "id">) => {
 
-            onSchedule(moment);
+            try {
 
-            if (moment.title) {
+              console.log('Received moment from ScheduleMoment:', moment);
 
-              handleAddToCalendar(moment.title);
+              await handleAddToCalendar(moment);
+
+              console.log('Successfully added to Google Calendar');
+
+              await onSchedule(moment);
+
+              console.log('Successfully called onSchedule');
+
+              return true;
+
+            } catch (error) {
+
+              console.error('Detailed scheduling error:', error);
+
+              toast.error('Failed to schedule moment');
+
+              return false;
 
             }
 

@@ -67,11 +67,11 @@
   }
 
   .time-slot {
-    @apply px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs text-gray-600 truncate;
+    @apply px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs text-gray-600 truncate relative;
   }
 
   .time-slot.available {
-    @apply text-pink-600 font-medium;
+    @apply text-pink-600 font-medium hover:bg-pink-50 transition-colors;
   }
 
   .has-slots::after {

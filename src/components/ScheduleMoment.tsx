@@ -3,9 +3,10 @@ import { Calendar, Clock, Heart, Flame } from 'lucide-react';
 import { GoogleCalendar } from './calendar/GoogleCalendar';
 import type { ScheduledMoment, Desire } from '../lib/db';
 import { format as dateFormat } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Props {
-  onSchedule: (moment: Omit<ScheduledMoment, 'id'>) => void;
+  onSchedule: (moment: Omit<ScheduledMoment, 'id'>) => Promise<boolean>;
   desires: Desire[];
   isHotMode: boolean;
   isEmmaMode: boolean;
@@ -77,19 +78,22 @@ export function ScheduleMoment({ onSchedule, desires, isHotMode, isEmmaMode }: P
         };
       }
 
-      onSchedule(momentData);
-
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setSelectedDate(null);
-      setTime('');
-      setCategory(INTIMATE_CATEGORIES[0]);
-      setSelectedDesireId('');
-      setIsCustomMoment(true);
-      setShowCalendarView(false);
+      const success = await onSchedule(momentData);
+      
+      if (success) {
+        setTitle('');
+        setDescription('');
+        setSelectedDate(null);
+        setTime('');
+        setCategory(INTIMATE_CATEGORIES[0]);
+        setSelectedDesireId('');
+        setIsCustomMoment(true);
+        setShowCalendarView(false);
+        toast.success('Moment scheduled successfully');
+      }
     } catch (error) {
       console.error('Failed to schedule moment:', error);
+      toast.error('Failed to schedule moment');
     } finally {
       setIsLoading(false);
     }

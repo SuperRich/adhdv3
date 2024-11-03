@@ -15,6 +15,8 @@ import { googleCalendarService } from '../../services/googleCalendarService';
 import { CalendarEvent } from '../../types/calendar';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarDay } from './CalendarDay';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface GoogleCalendarProps {
   onDateSelect: (date: Date) => void;
@@ -30,6 +32,17 @@ export function GoogleCalendar({ onDateSelect, selectedDate }: GoogleCalendarPro
   useEffect(() => {
     fetchMonthEvents();
   }, [currentDate]);
+
+  useEffect(() => {
+    const handleCalendarUpdate = () => {
+      fetchMonthEvents();
+    };
+
+    window.addEventListener('calendar-updated', handleCalendarUpdate);
+    return () => {
+      window.removeEventListener('calendar-updated', handleCalendarUpdate);
+    };
+  }, []);
 
   const fetchMonthEvents = async () => {
     try {
@@ -120,10 +133,32 @@ export function GoogleCalendar({ onDateSelect, selectedDate }: GoogleCalendarPro
               {dayEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="time-slot available"
-                  title={`${event.summary}\n${format(new Date(event.start), 'HH:mm')} - ${format(new Date(event.end), 'HH:mm')}`}
+                  className="relative group"
                 >
-                  {format(new Date(event.start), 'HH:mm')}
+                  <div
+                    className="time-slot available group-hover:bg-pink-100"
+                    title={`${event.summary}\n${format(new Date(event.start), 'HH:mm')} - ${format(new Date(event.end), 'HH:mm')}`}
+                  >
+                    {format(new Date(event.start), 'HH:mm')}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this event?')) {
+                          googleCalendarService.deleteEvent(event.id)
+                            .then(() => {
+                              window.dispatchEvent(new Event('calendar-updated'));
+                              toast.success('Event deleted successfully');
+                            })
+                            .catch(() => {
+                              toast.error('Failed to delete event');
+                            });
+                        }
+                      }}
+                      className="absolute right-0 top-0 hidden group-hover:block p-1 text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -235,5 +235,10 @@ export const weeklyPrioritiesDB = {
         callback([]);
       }
     });
+  },
+
+  async clear() {
+    const docRef = doc(db, 'weekly-priorities', 'current');
+    await setDoc(docRef, { priorities: [] });
   }
 };

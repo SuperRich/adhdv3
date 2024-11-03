@@ -1,75 +1,52 @@
-import { useEffect, useState } from 'react';
-import { googleAuthService } from '../services/googleAuthService';
+import React, { useEffect, useState } from 'react';
 import { googleCalendarService } from '../services/googleCalendarService';
-import { CalendarEvent } from '../types/calendar';
+import { format } from 'date-fns';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const CalendarEvents = () => {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadEvents = async () => {
+    try {
+      setIsLoading(true);
+      const fetchedEvents = await googleCalendarService.getUpcomingEvents();
+      setEvents(fetchedEvents);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load events');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
+    loadEvents();
 
-    const initializeAndLoadEvents = async () => {
-      try {
-        console.log('Setting loading state to true');
-        setIsLoading(true);
-        
-        if (!googleAuthService.isInitialized()) {
-          await googleAuthService.initialize();
-        }
-
-        const upcomingEvents = await googleCalendarService.getUpcomingEvents(7);
-        console.log('Events before setting state:', upcomingEvents);
-        
-        if (mounted) {
-          const sortedEvents = upcomingEvents.sort((a, b) => 
-            new Date(a.start).getTime() - new Date(b.start).getTime()
-          );
-          setEvents(sortedEvents);
-          console.log('Events set in state:', sortedEvents);
-        }
-      } catch (err) {
-        console.error('Error in CalendarEvents:', err);
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load calendar events');
-        }
-      } finally {
-        if (mounted) {
-          console.log('Setting loading state to false');
-          setIsLoading(false);
-        }
-      }
+    // Listen for calendar updates
+    const handleCalendarUpdate = () => {
+      loadEvents();
     };
 
-    initializeAndLoadEvents();
-
+    window.addEventListener('calendar-updated', handleCalendarUpdate);
     return () => {
-      mounted = false;
+      window.removeEventListener('calendar-updated', handleCalendarUpdate);
     };
   }, []);
 
-  console.log('Current state:', { isLoading, events: events.length, error });
-
-  const formatEventDate = (dateString: string) => {
+  const handleDelete = async (eventId: string) => {
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        console.error('Invalid date string:', dateString);
-        return 'Invalid date';
+      if (window.confirm('Are you sure you want to delete this event?')) {
+        await googleCalendarService.deleteEvent(eventId);
+        window.dispatchEvent(new Event('calendar-updated'));
+        await loadEvents(); // Refresh the list
+        toast.success('Event deleted successfully');
       }
-      return date.toLocaleString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Error formatting date';
+      toast.error('Failed to delete event');
+      console.error('Error deleting event:', error);
     }
   };
 
@@ -95,28 +72,59 @@ export const CalendarEvents = () => {
         <ul className="space-y-3 sm:space-y-4">
           {events.map((event) => (
             <li key={event.id} className="bg-white rounded-lg shadow p-3 sm:p-4">
-              <h3 className="font-medium text-base sm:text-lg">{event.summary}</h3>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                {event.start && `Start: ${formatEventDate(event.start)}`}
-                <br />
-                {event.end && `End: ${formatEventDate(event.end)}`}
-              </p>
-              {event.description && (
-                <div className="mt-2 text-xs sm:text-sm">
-                  <p className="whitespace-pre-wrap break-words overflow-hidden">
-                    {event.description}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium text-base sm:text-lg">{event.summary}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    {event.start && `Start: ${formatEventDate(event.start)}`}
+                    <br />
+                    {event.end && `End: ${formatEventDate(event.end)}`}
                   </p>
+                  {event.description && (
+                    <div className="mt-2 text-xs sm:text-sm">
+                      <p className="whitespace-pre-wrap break-words overflow-hidden">
+                        {event.description}
+                      </p>
+                    </div>
+                  )}
+                  {event.location && (
+                    <p className="mt-2 text-xs sm:text-sm text-gray-500 break-words">
+                      Location: {event.location}
+                    </p>
+                  )}
                 </div>
-              )}
-              {event.location && (
-                <p className="mt-2 text-xs sm:text-sm text-gray-500 break-words">
-                  Location: {event.location}
-                </p>
-              )}
+                <button
+                  onClick={() => event.id && handleDelete(event.id)}
+                  className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
     </div>
   );
+};
+
+const formatEventDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString);
+      return 'Invalid date';
+    }
+    return date.toLocaleString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Error formatting date';
+  }
 }; 
