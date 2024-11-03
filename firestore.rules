@@ -2,28 +2,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all users for development
+    // Base rule - deny all by default
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
     
-    // Previous rules can be commented out for now
-    // match /appreciations/{appreciation} {
-    //   allow read: if request.auth != null;
-    //   allow write: if request.auth != null && 
-    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
-    // }
+    // Allow access to weekly updates collection
+    match /weeklyUpdates/{updateId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
     
-    // match /desires/{desire} {
-    //   allow read: if request.auth != null;
-    //   allow write: if request.auth != null && 
-    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
-    // }
+    // Keep existing collections accessible (you may want to adjust these based on your needs)
+    match /desires/{desireId} {
+      allow read, write: if request.auth != null;
+    }
     
-    // match /scheduled-moments/{moment} {
-    //   allow read: if request.auth != null;
-    //   allow write: if request.auth != null && 
-    //     (request.auth.token.name == 'Emma' || request.auth.token.name == 'Richard');
-    // }
+    match /appreciations/{appreciationId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }

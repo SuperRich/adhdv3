@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 
 import { googleCalendarService } from '../services/googleCalendarService';
 
-import type { ScheduledMoment, Desire } from '../lib/db';
+import type { ScheduledMoment, Desire, WeeklyPriority } from '../lib/db';
+
+import { weeklyPrioritiesDB } from '../lib/db';
 
 
 
@@ -36,13 +38,27 @@ interface Props {
 
 export function EmmaWellbeing({ onSchedule, desires, isHotMode, isEmmaMode }: Props) {
 
-  const [weeklyIssues, setWeeklyIssues] = useState<Array<{text: string; priority: number}>>([]);
-
-  const [wellbeing, setWellbeing] = useState('');
+  const [weeklyIssues, setWeeklyIssues] = useState<WeeklyPriority[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+
+
+
+  useEffect(() => {
+
+    const unsubscribe = weeklyPrioritiesDB.subscribe((priorities) => {
+
+      setWeeklyIssues(priorities);
+
+    });
+
+
+
+    return () => unsubscribe();
+
+  }, []);
 
 
 
@@ -120,21 +136,13 @@ export function EmmaWellbeing({ onSchedule, desires, isHotMode, isEmmaMode }: Pr
 
     const emailBody = `
 
-Weekly Challenges:
+Weekly Priorities:
 
-
-
-${weeklyIssues.map(issue => issue.text).join('\n')}
-
-
-
-Current Wellbeing:
-
-
-
-${wellbeing}
-
-
+${weeklyIssues.map(issue => `
+${issue.priority}. ${issue.text}
+How:
+${issue.howPoints.map(point => `• ${point}`).join('\n')}
+`).join('\n')}
 
 Sent on: ${currentDate}
 
@@ -155,10 +163,6 @@ Sent on: ${currentDate}
       
 
       if (success) {
-
-        setWeeklyIssues([]);
-
-        setWellbeing('');
 
         toast.success('Weekly update shared successfully!');
 
@@ -224,41 +228,121 @@ Sent on: ${currentDate}
 
                     </div>
 
-                    <input
+                    <div className="space-y-2">
 
-                      type="text"
+                      <input
 
-                      value={existingIssue?.text || ''}
+                        type="text"
 
-                      onChange={(e) => {
+                        value={existingIssue?.text || ''}
 
-                        const newIssues = weeklyIssues.filter(i => i.priority !== priority);
+                        onChange={(e) => {
 
-                        if (e.target.value) {
+                          const newIssues = weeklyIssues.filter(i => i.priority !== priority);
 
-                          newIssues.push({ priority, text: e.target.value });
+                          if (e.target.value) {
 
-                        }
+                            newIssues.push({ 
 
-                        setWeeklyIssues(newIssues.sort((a, b) => a.priority - b.priority));
+                              priority, 
 
-                      }}
+                              text: e.target.value,
 
-                      placeholder={[
+                              howPoints: existingIssue?.howPoints || ['', '', '']
 
-                        "Help me stay focused during meetings",
+                            });
 
-                        "Remind me about daily medication",
+                          }
 
-                        "Support my sleep schedule"
+                          const sortedIssues = newIssues.sort((a, b) => a.priority - b.priority);
 
-                      ][priority - 1]}
+                          setWeeklyIssues(sortedIssues);
 
-                      className="w-full bg-transparent border-none focus:ring-2 focus:ring-pink-300 rounded-md pl-4 sm:pl-6 pr-2 sm:pr-4 py-1.5 sm:py-2 placeholder-gray-400 text-sm sm:text-base"
+                          weeklyPrioritiesDB.save(sortedIssues);
 
-                      required
+                        }}
 
-                    />
+                        placeholder={[
+
+                          "Help me stay focused during meetings",
+
+                          "Remind me about daily medication",
+
+                          "Support my sleep schedule"
+
+                        ][priority - 1]}
+
+                        className="w-full bg-transparent border-none focus:ring-2 focus:ring-pink-300 rounded-md pl-4 sm:pl-6 pr-2 sm:pr-4 py-1.5 sm:py-2 placeholder-gray-400 text-sm sm:text-base"
+
+                        required
+
+                      />
+
+                      
+
+                      <div className="pl-4 space-y-2">
+
+                        <div className="text-sm text-pink-600 font-medium">How:</div>
+
+                        {[0, 1, 2].map((index) => (
+
+                          <input
+
+                            key={index}
+
+                            type="text"
+
+                            value={existingIssue?.howPoints?.[index] || ''}
+
+                            onChange={(e) => {
+
+                              const newIssues = [...weeklyIssues];
+
+                              const issueIndex = newIssues.findIndex(i => i.priority === priority);
+
+                              if (issueIndex === -1) {
+
+                                newIssues.push({
+
+                                  priority,
+
+                                  text: '',
+
+                                  howPoints: ['', '', ''].map((point, i) => i === index ? e.target.value : point)
+
+                                });
+
+                              } else {
+
+                                const newHowPoints = [...(newIssues[issueIndex].howPoints || ['', '', ''])];
+
+                                newHowPoints[index] = e.target.value;
+
+                                newIssues[issueIndex].howPoints = newHowPoints;
+
+                              }
+
+                              const sortedIssues = newIssues.sort((a, b) => a.priority - b.priority);
+
+                              setWeeklyIssues(sortedIssues);
+
+                              weeklyPrioritiesDB.save(sortedIssues);
+
+                            }}
+
+                            placeholder={`How point ${index + 1}`}
+
+                            className="w-full bg-white/50 border border-pink-100 focus:border-pink-300 focus:ring-2 focus:ring-pink-200 rounded-md pl-6 pr-2 py-1 text-sm"
+
+                            required
+
+                          />
+
+                        ))}
+
+                      </div>
+
+                    </div>
 
                   </div>
 
@@ -272,41 +356,19 @@ Sent on: ${currentDate}
 
 
 
-          <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-3 sm:p-6 rounded-lg border border-pink-100">
-
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-
-              <HeartHandshake className="w-3 h-3 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2 text-pink-500" />
-
-              How can Richard best support you this week?
-
-            </label>
-
-            <textarea
-
-              value={wellbeing}
-
-              onChange={(e) => setWellbeing(e.target.value)}
-
-              placeholder="Share your current emotional state, energy levels, and any specific support you need..."
-
-              className="w-full rounded-md border-pink-200 shadow-sm focus:border-pink-300 focus:ring focus:ring-pink-200 focus:ring-opacity-50 resize-none text-sm sm:text-base"
-
-              rows={4}
-
-              required
-
-            />
-
-          </div>
-
-
-
           <button
 
             type="submit"
 
-            disabled={isSubmitting || weeklyIssues.length < 3 || !wellbeing.trim()}
+            disabled={isSubmitting || weeklyIssues.length < 3 || 
+
+              !weeklyIssues.every(issue => 
+
+                issue.text.trim() && 
+
+                issue.howPoints?.every(point => point.trim())
+
+              )}
 
             className="w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg text-white text-sm sm:text-base font-medium bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 shadow-md"
 

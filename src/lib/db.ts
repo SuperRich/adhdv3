@@ -9,7 +9,9 @@ import {
   updateDoc,
   orderBy,
   limit as firestoreLimit,
-  onSnapshot
+  onSnapshot,
+  setDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { FirebaseError } from 'firebase/app';
@@ -38,6 +40,12 @@ export interface Desire {
   priority: number;
   isHot: boolean;
   category?: string;
+}
+
+export interface WeeklyPriority {
+  priority: number;
+  text: string;
+  howPoints: string[]; // Array of bullet points for "the how"
 }
 
 export const appreciationsDB = {
@@ -192,6 +200,40 @@ export const desiresDB = {
         date: new Date(doc.data().date)
       })) as Desire[];
       callback(desires);
+    });
+  }
+};
+
+export const weeklyPrioritiesDB = {
+  async save(priorities: WeeklyPriority[]) {
+    const docRef = doc(db, 'weekly-priorities', 'current');
+    await updateDoc(docRef, { priorities }).catch(async (error) => {
+      // If document doesn't exist, create it
+      if (error.code === 'not-found') {
+        await setDoc(docRef, { priorities });
+      } else {
+        throw error;
+      }
+    });
+  },
+
+  async load() {
+    const docRef = doc(db, 'weekly-priorities', 'current');
+    const snapshot = await getDoc(docRef);
+    if (snapshot.exists()) {
+      return snapshot.data().priorities as WeeklyPriority[];
+    }
+    return [];
+  },
+
+  subscribe(callback: (priorities: WeeklyPriority[]) => void) {
+    const docRef = doc(db, 'weekly-priorities', 'current');
+    return onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        callback(snapshot.data().priorities as WeeklyPriority[]);
+      } else {
+        callback([]);
+      }
     });
   }
 };
